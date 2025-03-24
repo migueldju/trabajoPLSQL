@@ -128,6 +128,25 @@ create or replace procedure registrar_pedido(
         CLOSE disponibilidadSegundo;
     END IF;
 
+    v_id_pedido := seq_pedidos.nextval;
+    INSERT INTO pedidos(id_pedido, id_cliente, id_personal, fecha_pedido, total)
+    VALUES(v_id_pedido, arg_id_cliente, arg_id_personal, SYSDATE, 0);
+    
+    IF arg_id_primer_plato IS NOT NULL THEN
+        INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
+        VALUES(v_id_pedido, arg_id_primer_plato, 1);  
+    END IF;
+
+    IF arg_id_segundo_plato IS NOT NULL THEN
+        INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
+        VALUES(v_id_pedido, arg_id_segundo_plato, 1);  
+    END IF;
+
+    UPDATE personal_servicio
+    SET pedidos_activos = pedidos_activos + 1
+    WHERE id_personal = arg_id_personal;
+    COMMIT;
+
     
   
 end;
