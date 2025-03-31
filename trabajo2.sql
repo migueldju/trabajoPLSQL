@@ -91,6 +91,7 @@ BEGIN
     RAISE_APPLICATION_ERROR(-20003, 'El personal de servicio tiene demasiados pedidos');
   END IF;
   CLOSE pedidosPersonal;
+  
   IF arg_id_primer_plato IS NOT NULL THEN    
     OPEN disponibilidadPrimero;
     FETCH disponibilidadPrimero INTO primeroDisponible;
@@ -98,6 +99,7 @@ BEGIN
       CLOSE disponibilidadPrimero;
       RAISE_APPLICATION_ERROR(-20004, 'El primer plato seleccionado no existe.');
     END IF;
+    
     IF primeroDisponible = 0 THEN -- 0 means FALSE
       CLOSE disponibilidadPrimero;
       RAISE_APPLICATION_ERROR(-20001, 'Uno de los platos seleccionados no está disponible.');
@@ -190,121 +192,119 @@ END;
 
 CREATE OR REPLACE PROCEDURE test_registrar_pedido IS
 BEGIN
-  -- Caso 1: Pedido correcto, se realiza
-  BEGIN
-    inicializa_test;
-    
-    DECLARE
-        id_pedido_test INTEGER;
-        pedido_activo_test_pre INTEGER; -- guardar cuántos pedidos activos tenía Carlos
-    
+    -- Caso 1: Pedido correcto, se realiza
     BEGIN
-      -- Guardo valor previo de pedidos activos de Carlos
-        SELECT pedidos_activos
-        INTO pedido_activo_test_pre
-        FROM personal_servicio
-        WHERE id_personal=1;
-    
-        DBMS_OUTPUT.PUT_LINE('Test1: Se realiza un pedido con un primer y segundo plato disponible y personal con capacidad------------------');
-        registrar_pedido(1, 1, 1, NULL); -- Cliente Pepe, personal Carlos, Primer pl Sopa y segundo Plato nulo
-    
-        SELECT MAX(id_pedido) -- pedido más reciente
-        INTO id_pedido_test
-        FROM pedidos
-        WHERE id_cliente = 1 AND id_personal = 1;
-    
-        IF id_pedido_test IS NULL THEN
-          DBMS_OUTPUT.PUT_LINE('No se ha realizado el pedido correctamente');
-        END IF;
+        inicializa_test;
         
-        -- Comprobar si la cantidad de pedidos activos del personal ha aumentado
         DECLARE
-            pedido_activo_test INTEGER;
+            id_pedido_test INTEGER;
+            pedido_activo_test_pre INTEGER; -- guardar cuántos pedidos activos tenía Carlos
         BEGIN
+            -- Guardo valor previo de pedidos activos de Carlos
             SELECT pedidos_activos
-            INTO pedido_activo_test
+            INTO pedido_activo_test_pre
             FROM personal_servicio
-            WHERE id_personal=1;
-        
-            IF pedido_activo_test > pedido_activo_test_pre THEN
-                DBMS_OUTPUT.PUT_LINE('Los pedidos activos han aumentado');
-            ELSE
-                DBMS_OUTPUT.PUT_LINE('No se ha registrado un pedido activo nuevo');
-            END IF;    
-            ROLLBACK;
+            WHERE id_personal = 1;
+            
+            DBMS_OUTPUT.PUT_LINE('Test1: Se realiza un pedido con un primer y segundo plato disponible y personal con capacidad------------------');
+            registrar_pedido(1, 1, 1, NULL); -- Cliente Pepe, personal Carlos, Primer pl Sopa y segundo Plato nulo
+            
+            SELECT MAX(id_pedido) -- pedido más reciente
+            INTO id_pedido_test
+            FROM pedidos
+            WHERE id_cliente = 1 AND id_personal = 1;
+            
+            IF id_pedido_test IS NULL THEN
+                DBMS_OUTPUT.PUT_LINE('No se ha realizado el pedido correctamente');
+            END IF;
+            
+            -- Comprobar si la cantidad de pedidos activos del personal ha aumentado
+            DECLARE
+                pedido_activo_test INTEGER;
+            BEGIN
+                SELECT pedidos_activos
+                INTO pedido_activo_test
+                FROM personal_servicio
+                WHERE id_personal = 1;
+                
+                IF pedido_activo_test > pedido_activo_test_pre THEN
+                    DBMS_OUTPUT.PUT_LINE('BIEN: Los pedidos activos han aumentado');
+                ELSE 
+                    DBMS_OUTPUT.PUT_LINE('MAL: No se ha registrado un pedido activo nuevo');
+                END IF;
+                ROLLBACK;
+            END;
         END;
-    END;
-    
-    DBMS_OUTPUT.PUT_LINE('Test2: Pedido vacío sin ningún plato que devuelve excepción -20002');
-    
-    BEGIN
-        registrar_pedido(1, 1, NULL, NULL);
-        ROLLBACK;    
-        DBMS_OUTPUT.PUT_LINE('MAL: registra pedido sin primer plato ni segundo.');
-    EXCEPTION
-        WHEN OTHERS THEN
-        IF SQLCODE = -20002 THEN
-            DBMS_OUTPUT.PUT_LINE('BIEN: pedido vacío.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        ELSE
-            DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos vacíos.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        END IF;
-    END;
-    
-    
-    DBMS_OUTPUT.PUT_LINE('Test3: Pedido con plato inexistente que devuelve excepción -20004');
-    BEGIN
-        -- Escogeré un número aleatorio, por ejemplo, el 33
-        registrar_pedido(1, 1, 33, NULL);
-        ROLLBACK;
-    EXCEPTION
-        WHEN OTHERS THEN
-        IF SQLCODE = -20004 THEN
-            DBMS_OUTPUT.PUT_LINE('BIEN: pedido con plato inexistente ha generado el error -20004.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        ELSE
-            DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos inexistentes.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        END IF;
-    END;
-    
-    DBMS_OUTPUT.PUT_LINE('Test4: Pedido que incluye un plato que ya no está disponible devuelve error -20001');
-    BEGIN
-        registrar_pedido(1, 1, 3, 2);
-        ROLLBACK;
-    EXCEPTION
-        WHEN OTHERS THEN
-        IF SQLCODE = -20001 THEN
-            DBMS_OUTPUT.PUT_LINE('BIEN: pedido con plato no disponible ha generado el error -20001.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        ELSE
-            DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos no disponibles.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        END IF;
-    END;
-    
-    DBMS_OUTPUT.PUT_LINE('Test5: Personal de servicio con ya 5 pedidos activos y se le asigna otro devuelve error -20003');
-    BEGIN
-        registrar_pedido(1, 2, 1, 2);
-        ROLLBACK;
-    EXCEPTION
-        WHEN OTHERS THEN
-        IF SQLCODE = -20003 THEN
-            DBMS_OUTPUT.PUT_LINE('BIEN: pedido con personal con más de 5 pedidos activos devuelve -20003.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        ELSE
-            DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta que hay pedidos de más.');
-            DBMS_OUTPUT.PUT_LINE('Error nro '||SQLCODE);
-            DBMS_OUTPUT.PUT_LINE('Mensaje '||SQLERRM);
-        END IF;
+        
+        DBMS_OUTPUT.PUT_LINE('Test2: Pedido vacío sin ningún plato que devuelve excepción -20002');
+        BEGIN
+            registrar_pedido(1, 1, NULL, NULL);
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('MAL: registra pedido sin primer plato ni segundo.');
+        EXCEPTION
+            WHEN OTHERS THEN
+                IF SQLCODE = -20002 THEN
+                    DBMS_OUTPUT.PUT_LINE('BIEN: pedido vacío.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos vacíos.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                END IF;
+        END;
+        
+        DBMS_OUTPUT.PUT_LINE('Test3: Pedido con plato inexistente que devuelve excepción -20004');
+        BEGIN
+            -- Escogeré un número aleatorio, por ejemplo, el 33
+            registrar_pedido(1, 1, 33, NULL);
+            ROLLBACK;
+        EXCEPTION
+            WHEN OTHERS THEN
+                IF SQLCODE = -20004 THEN
+                    DBMS_OUTPUT.PUT_LINE('BIEN: pedido con plato inexistente ha generado el error -20004.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos inexistentes.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                END IF;
+        END;
+        
+        DBMS_OUTPUT.PUT_LINE('Test4: Pedido que incluye un plato que ya no está disponible devuelve error -20001');
+        BEGIN
+            registrar_pedido(1, 1, 3, 2);
+            ROLLBACK;
+        EXCEPTION
+            WHEN OTHERS THEN
+                IF SQLCODE = -20001 THEN
+                    DBMS_OUTPUT.PUT_LINE('BIEN: pedido con plato no disponible ha generado el error -20001.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta platos no disponibles.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                END IF;
+        END;
+        
+        DBMS_OUTPUT.PUT_LINE('Test5: Personal de servicio con ya 5 pedidos activos y se le asigna otro devuelve error -20003');
+        BEGIN
+            registrar_pedido(1, 2, 1, 2);
+            ROLLBACK;
+        EXCEPTION
+            WHEN OTHERS THEN
+                IF SQLCODE = -20003 THEN
+                    DBMS_OUTPUT.PUT_LINE('BIEN: pedido con personal con más de 5 pedidos activos devuelve -20003.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('MAL: Da error pero no detecta que hay pedidos de más.');
+                    DBMS_OUTPUT.PUT_LINE('Error nro ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje ' || SQLERRM);
+                END IF;
+        END;
     END;
 END;
 /
