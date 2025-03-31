@@ -1,0 +1,5 @@
+Proyecto: /home/alumno/.sqldeveloper/system23.1.1.342.1456/o.sqldeveloper/projects/IdeConnections#trabajo2.jpr
+    Procedimiento HR.TEST_REGISTRAR_PEDIDO@trabajo2
+        Error(119,4): PLS-00103: Encountered the symbol "end-of-file" when expecting one of the following:     ( begin case declare end exception exit for goto if loop mod    null pragma raise return select update while with    <an identifier> <a double-quoted delimited-identifier>    <a bind variable> << continue close current delete fetch lock    insert open rollback savepoint set sql execute commit forall    merge pipe purge 
+    /home/alumno/Descargas/trabajo2_conTest.sql
+        Error(173): PLS-00103: Encountered the symbol "end-of-file" when expecting one of the following:     ( begin case declare end exception exit for goto if loop mod    null pragma raise return select update while with    <an identifier> <a double-quoted delimited-identifier>    <a bind variable> << continue close current delete fetch lock    insert open rollback savepoint set sql execute commit forall    merge pipe purge 
