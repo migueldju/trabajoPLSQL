@@ -111,7 +111,6 @@ BEGIN
       CLOSE disponibilidadSegundo;
       RAISE_APPLICATION_ERROR(-20004, 'El segundo plato seleccionado no existe.');
     END IF;
-<<<<<<< HEAD
     IF segundoDisponible = 0 THEN -- 0 means FALSE
       CLOSE disponibilidadSegundo;
       RAISE_APPLICATION_ERROR(-20001, 'Uno de los platos seleccionados no está disponible.');
@@ -134,31 +133,6 @@ BEGIN
   WHERE id_personal = arg_id_personal;
   COMMIT;
 END;
-=======
-
-    v_id_pedido := seq_pedidos.nextval;
-    INSERT INTO pedidos(id_pedido, id_cliente, id_personal, fecha_pedido, total)
-    VALUES(v_id_pedido, arg_id_cliente, arg_id_personal, SYSDATE, 0);
-    
-    IF arg_id_primer_plato IS NOT NULL THEN
-        INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
-        VALUES(v_id_pedido, arg_id_primer_plato, 1);  
-    END IF;
-
-    IF arg_id_segundo_plato IS NOT NULL THEN
-        INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
-        VALUES(v_id_pedido, arg_id_segundo_plato, 1);  
-    END IF;
-
-    UPDATE personal_servicio
-    SET pedidos_activos = pedidos_activos + 1
-    WHERE id_personal = arg_id_personal;
-    COMMIT;
-
-    
-  
-end;
->>>>>>> e6cdb817f49290ee4a337a2465d985d9b7a669ee
 /
 
 ------ Deja aquí tus respuestas a las preguntas del enunciado:
@@ -335,12 +309,6 @@ BEGIN
 END;
 /
 
-<<<<<<< HEAD
 SET SERVEROUTPUT ON;
 EXEC inicializa_test;
 EXEC test_registrar_pedido;
-=======
-
-set serveroutput on;
-exec test_registrar_pedido;
->>>>>>> e6cdb817f49290ee4a337a2465d985d9b7a669ee
