@@ -173,7 +173,8 @@ END;
 --        FOR UPDATE;
 --
 --	
--- * P4.3 ¿Podrías asegurar que el pedido se puede realizar de manera correcta en el paso 4 y no se generan inconsistencias? ¿Por qué?
+-- * P4.3 Una vez hechas las comprobaciones en los pasos 1 y 2, ¿podrías asegurar que el pedido se puede realizar de manera correcta en el paso 4 y no se generan 
+--	  inconsistencias? ¿Por qué? Recuerda que trabajamos en entornos con conexiones concurrentes.
 --	
 --        Efectivamente podremos asegurarnos de que el pedido se puede realizar de manera correcta sin generarse inconsistencias debido al uso de FOR UPDATE
 --        en el cursor pedidosPersonal, ya que eso nos garantizará que la fila correspondiente en personal_servicio quede bloqueada hasta que la transacción 
@@ -181,15 +182,27 @@ END;
 --        el numero de pedidos de ese personal.
 --
 --	
--- * P4.4 Si modificamos la tabla personal_servicio añadiendo CHECK (pedidos_activos ≤ 5), ¿qué implicaciones tendría en tu código?
+-- * P4.4 Si modificásemos la tabla de personal servicio añadiendo CHECK (pedido activos ≤ 5), ¿Qué implicaciones tendría en tu código? 
+--	  ¿Cómo afectaría en la gestión de excepciones? Describe en detalle las modificaciones que deberías hacer en tu código para mejorar tu solución ante 
+--	  esta situación (puedes añadir pseudocódigo).
 --
 --        Al añadir CHECK (pedidos_activos <= 5), nuestro código evitaría que pedidos_activos supere ese límite, es decir, que fuese mayor que 5.
 --        
 --        Sin embargo, como ya tenemos una verificación manual de esto en registrar_pedido, habria que borrarla, pues con el CHECK de la tabla personal_servicio
 --        está verificación ya quedaría resuelta. Por último, si pedidos_activos fuese mayor que 5, se generaría un error ORA-02290 (check constraint violated),
 --        por lo que habría que capturar en nuestro código esa excepción.
+--       
+--        Modificaciones que deberíamos hacer en la gestión de excepciones para mejorar nuestra solucion ante esta situación:
+--	
+--  	  EXCEPTION
+--            WHEN OTHERS THEN
+--                IF SQLCODE = -2290 THEN
+--                    RAISE_APPLICATION_ERROR(-20003, 'El personal de servicio tiene demasiados pedidos');
+-- 		  ELSE
+--		      RAISE;
+--		  END IF;
 --
---  	
+--	
 -- * P4.5 ¿Qué tipo de estrategia de programación has utilizado? ¿Cómo puede verse en tu código?
 --  	
 --        Hemos utilizado una estrategia de programación defensiva y estructurada, ya que se han realizado validaciones previas
