@@ -64,6 +64,7 @@ CREATE OR REPLACE PROCEDURE registrar_pedido(
   SELECT pedidos_activos
   FROM personal_servicio
   WHERE id_personal = arg_id_personal;
+  FOR UPDATE;
   
   nPedidosPersonal INTEGER;
   
@@ -139,17 +140,68 @@ END;
 
 ------ Deja aquí tus respuestas a las preguntas del enunciado:
 -- NO SE CORREGIRÁN RESPUESTAS QUE NO ESTÉN AQUÍ (utiliza el espacio que necesites para cada una)
--- * P4.1
+-- * P4.1 ¿Cómo garantizas en tu código que un miembro del personal de servicio no supere el límite de pedidos activos?
+--	
+--        Para garantizar que en nuestro código un miembro del personal de servicio no supere el límite de pedidos activos,
+--	  utilizamos un cursor, pedidosPersonal dentro del procedimiento registrar_pedido con el objetivo de obtener la 
+--        cantidad de pedidos activos del miembro del personal que atenderá el pedido. Posterior mente hacemos una validación.
 --
--- * P4.2
+--        Si el numero de los pedidos es de 5 o más, se lanza un error -20003, bloqueando la asignacion de un nuevo pedido a
+--        ese empleado. Consiguiendo así que no supere el límite de pedidos activos.
 --
--- * P4.3
+--        A continuación se muestra la parte del código donde hemos implementado esto:
 --
--- * P4.4
+--        IF nPedidosPersonal >= 5 THEN
+--        	CLOSE pedidosPersonal;
+--        	RAISE_APPLICATION_ERROR(-20003, 'El personal de servicio tiene demasiados pedidos');
+--        END IF;         
 --
--- * P4.5
--- 
-
+--
+--
+-- * P4.2 ¿Cómo evitas que dos transacciones concurrentes asignen un pedido al mismo personal de servicio cuyos pedidos activos están a punto de superar el límite?
+--	
+--        Para evitar que dos transacciones concurrentes asignen un pedido al mismo poersonal de servicio, hemos agregado FOR UPDATE en la consulta que obtiene 
+--	  el número de pedidos activos del personal, que bloquea la fila correspondiente en la tabla personal_servicio y asi se evita que una transacción no pueda 
+--        acceder a ella si ya hay otra trabajando con ella. 
+--        
+--	  Quedará en espera a que la que esté activa termine. A continuación se muestra la parte del código donde hemos implementado esto:
+--	
+--	  CURSOR pedidosPersonal IS
+--        SELECT pedidos_activos
+--        FROM personal_servicio
+--        WHERE id_personal = arg_id_personal
+--        FOR UPDATE;
+--
+--	
+-- * P4.3 ¿Podrías asegurar que el pedido se puede realizar de manera correcta en el paso 4 y no se generan inconsistencias? ¿Por qué?
+--	
+--        Efectivamente podremos asegurarnos de que el pedido se puede realizar de manera correcta sin generarse inconsistencias debido al uso de FOR UPDATE
+--        en el cursor pedidosPersonal, ya que eso nos garantizará que la fila correspondiente en personal_servicio quede bloqueada hasta que la transacción 
+--        que se encuentre trabajando con ella termine con commit o rollback. Así conseguimos evitar que otra transacción modifique simultáneamente a otra
+--        el numero de pedidos de ese personal.
+--
+--	
+-- * P4.4 Si modificamos la tabla personal_servicio añadiendo CHECK (pedidos_activos ≤ 5), ¿qué implicaciones tendría en tu código?
+--
+--        Al añadir CHECK (pedidos_activos <= 5), nuestro código evitaría que pedidos_activos supere ese límite, es decir, que fuese mayor que 5.
+--        
+--        Sin embargo, como ya tenemos una verificación manual de esto en registrar_pedido, habria que borrarla, pues con el CHECK de la tabla personal_servicio
+--        está verificación ya quedaría resuelta. Por último, si pedidos_activos fuese mayor que 5, se generaría un error ORA-02290 (check constraint violated),
+--        por lo que habría que capturar en nuestro código esa excepción.
+--
+--  	
+-- * P4.5 ¿Qué tipo de estrategia de programación has utilizado? ¿Cómo puede verse en tu código?
+--  	
+--        Hemos utilizado una estrategia de programación defensiva y estructurada, ya que se han realizado validaciones previas
+--        como la verificación de la disponibilidad de los platos y la de la capacidad del personal antes de insertar los datos.
+--
+--        También se han utilizado cursores para poder extraer la información antes de realizar operaciones críticas y se ha realizado
+--        una gestión de excepciones utilizando RAISE_APPLICATION_ERROR para poder manejar los errores y evitar inconsistencias.
+--
+--        Por último, haciendo uso de transacciones hemos asegurado de que todos los cambios sean atómicos, haciendo commit y rollback al final de cada una.
+--        También nos aseguramos de que en caso de que aparezca un error no existan modificaciones parciales.
+--
+	
 CREATE OR REPLACE PROCEDURE reset_seq(p_seq_name VARCHAR2) IS
     l_val NUMBER;
 BEGIN
