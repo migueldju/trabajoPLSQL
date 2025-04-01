@@ -48,7 +48,7 @@ CREATE TABLE detalle_pedido (
 );
 
 
--- Procedimiento a implementar para realizar la reserva
+-- Procedimiento a implementar para realizar la reserva.
 CREATE OR REPLACE PROCEDURE registrar_pedido(
     arg_id_cliente      INTEGER, 
     arg_id_personal     INTEGER, 
@@ -57,32 +57,46 @@ CREATE OR REPLACE PROCEDURE registrar_pedido(
 ) IS
     v_id_pedido INTEGER;
     
+-- Cursor para obtener el número de pedidos activos del personal que debe atender el pedido.
+-- Utilizamos FOR UPDATE para evitar que se pueda registrar otro pedido al mismo personal de forma concurrente
+-- y se pueda superar el máximo de pedidos activos.
     CURSOR pedidosPersonal IS
         SELECT pedidos_activos
         FROM personal_servicio
         WHERE id_personal = arg_id_personal
         FOR UPDATE;
-    
+
+-- Variable que guardará el número de pedidos activos.
     nPedidosPersonal INTEGER;
     
+-- Cursor que verifica si el primer plato está disponible.
     CURSOR disponibilidadPrimero IS
         SELECT disponible
         FROM platos
         WHERE id_plato = arg_id_primer_plato;
     
+-- Cursor que verifica si el segundo plato está disponible.
+-- Este sistema no es óptimo de cara a escalar el número de platos, aunque, al ser dos sirve.
+-- En caso de querer incluir más platos, se podría gestionar con una sola consulta, recorriendo todas las filas
+-- y comprobando cada plato individualmente. En este caso, es más sencillo de esta manera.
     CURSOR disponibilidadSegundo IS
         SELECT disponible
         FROM platos
         WHERE id_plato = arg_id_segundo_plato;
-    
+
+-- Variables que nos dicen si los platos están disponibles.
     primeroDisponible NUMBER;
     segundoDisponible NUMBER;
-    
+
+-- Finalizamos declaración de cursores y variables y comenzamos procedimiento. 
 BEGIN
+
+-- Si no se han incluido platos en el pedido, lanzamos excepción -20002.
     IF arg_id_primer_plato IS NULL AND arg_id_segundo_plato IS NULL THEN
         RAISE_APPLICATION_ERROR(-20002, 'El pedido debe contener al menos un plato.');
     END IF;
-    
+
+-- Si el número de pedidos activos del personal ya está en el máximo, lanzamos excepción -20003.
     OPEN pedidosPersonal;
     FETCH pedidosPersonal INTO nPedidosPersonal;
     IF nPedidosPersonal >= 5 THEN
@@ -90,7 +104,9 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20003, 'El personal de servicio tiene demasiados pedidos');
     END IF;
     CLOSE pedidosPersonal;
-    
+
+-- Comprobamos que los platos existen y están disponibles, lanzando las excepciones correspondientes
+-- Se utiliza una variable tipo INTEGER para comprobar la disponibilidad de los platos debido a que o
     IF arg_id_primer_plato IS NOT NULL THEN    
         OPEN disponibilidadPrimero;
         FETCH disponibilidadPrimero INTO primeroDisponible;
@@ -99,7 +115,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20004, 'El primer plato seleccionado no existe.');
         END IF;
         
-        IF primeroDisponible = 0 THEN -- 0 means FALSE
+        IF primeroDisponible = 0 THEN
             CLOSE disponibilidadPrimero;
             RAISE_APPLICATION_ERROR(-20001, 'Uno de los platos seleccionados no está disponible.');
         END IF;
@@ -114,18 +130,21 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20004, 'El segundo plato seleccionado no existe.');
         END IF;
         
-        IF segundoDisponible = 0 THEN -- 0 means FALSE
+        IF segundoDisponible = 0 THEN
             CLOSE disponibilidadSegundo;
             RAISE_APPLICATION_ERROR(-20001, 'Uno de los platos seleccionados no está disponible.');
         END IF;
         CLOSE disponibilidadSegundo;
     END IF;
-    
+
+-- Generamos id para el nuevo pedido a partir del número de pedidos generados
     v_id_pedido := seq_pedidos.nextval;
-    
+
+-- Insertamos pedido en la base de datos
     INSERT INTO pedidos(id_pedido, id_cliente, id_personal, fecha_pedido, total)
     VALUES(v_id_pedido, arg_id_cliente, arg_id_personal, SYSDATE, 0);
-    
+
+-- Agregamos detalles del pedido
     IF arg_id_primer_plato IS NOT NULL THEN
         INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
         VALUES(v_id_pedido, arg_id_primer_plato, 1);  
@@ -135,11 +154,13 @@ BEGIN
         INSERT INTO detalle_pedido(id_pedido, id_plato, cantidad)
         VALUES(v_id_pedido, arg_id_segundo_plato, 1);  
     END IF;
-    
+
+-- Actualizamos contador de pedidos activos del personal que ha atendido el pedido
     UPDATE personal_servicio
     SET pedidos_activos = pedidos_activos + 1
     WHERE id_personal = arg_id_personal;
-    
+
+-- Confirmamos transacción y finalizamos
     COMMIT;
 END;
 /
@@ -229,7 +250,7 @@ CREATE OR REPLACE PROCEDURE inicializa_test IS
 BEGIN
     reset_seq('seq_pedidos');
     
-    -- First delete from child tables, then parent tables (respect foreign keys)
+    -- Eliminamos lo que había anteriormente
     DELETE FROM detalle_pedido;
     DELETE FROM pedidos;
     DELETE FROM platos;
