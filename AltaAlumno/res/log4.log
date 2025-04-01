@@ -1,0 +1,10 @@
+INFO : [lsi.ubu.AltaAlumno.main(AltaAlumno.java:26)]2025-04-01 09:04:42.289 [main] AltaAlumno - Comienzo de los tests
+ERROR: [lsi.ubu.util.ExecuteScript.run(ExecuteScript.java:59)]2025-04-01 09:04:42.311 [main] ExecuteScript - Cannot run program "sql/lanza_sqlplus.sh": error=13, Permiso denegado
+INFO : [lsi.ubu.tests.Tests.ejecutarTests(Tests.java:35)]2025-04-01 09:04:42.606 [main] Tests - NO se da cuenta de que el grupo esta lleno MAL
+INFO : [lsi.ubu.tests.Tests.ejecutarTests(Tests.java:44)]2025-04-01 09:04:42.607 [main] Tests - NO se da cuenta de que el grupo no existe MAL
+INFO : [lsi.ubu.tests.Tests.ejecutarTests(Tests.java:53)]2025-04-01 09:04:42.609 [main] Tests - NO se da cuenta de que la asignatura no existe MAL
+DEBUG: [lsi.ubu.util.PoolDeConexiones.getConnection(PoolDeConexiones.java:103)]2025-04-01 09:04:44.257 [main] PoolDeConexiones - Activacion de Autocommit=false
+DEBUG: [lsi.ubu.util.PoolDeConexiones.getConnection(PoolDeConexiones.java:111)]2025-04-01 09:04:44.259 [main] PoolDeConexiones - Activacion de Autocommit=false ::: Nivel de Aislamiento=TRANSACTION_READ_COMMITTED
+ERROR: [lsi.ubu.tests.Tests.ejecutarTests(Tests.java:91)]2025-04-01 09:04:44.539 [main] Tests - ORA-00942: table or view does not exist
+
+INFO : [lsi.ubu.AltaAlumno.main(AltaAlumno.java:35)]2025-04-01 09:04:44.566 [main] AltaAlumno - Fin de los tests
